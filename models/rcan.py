@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F
 
+# Residual channel attention block
 class RCAB(nn.Module):
     def __init__(self, in_channels):
         super(RCAB, self).__init__()
         self.in_channels = in_channels
     
-    def initial_conv(self, im_height, im_width, tensor):
+    def initial_conv(self, tensor):
         conv_layers = nn.Sequential(
             nn.Conv2d(in_channels=self.in_channels, out_channels=self.in_channels, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -26,15 +27,14 @@ class RCAB(nn.Module):
         return attention_conv_layers(tensor)
     
     def block_output(self, tensor):
-        _, in_height, in_width = tensor.shape
-        conv_tensor = self.initial_conv(in_height, in_width, tensor) # passing throught the initial conv layer
+        conv_tensor = self.initial_conv(tensor) # passing throught the initial conv layer
         _, in_height, in_width = conv_tensor.shape
         scaling_stat = self.channel_attention(in_height, in_width, conv_tensor) # passing through channel attention layer
         conv_tensor = scaling_stat*conv_tensor # scaling the conv tensor
         tensor += conv_tensor # adding the initial input tensor
         return tensor 
 
-
+# Residual group 
 class ResidualGroup():
     def __init__(self, num_blocks, in_channels):
         self.num_blocks = num_blocks
@@ -61,14 +61,28 @@ class RCAN():
         self.in_channels = in_channels
         self.conv_start = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
         self.conv_mid = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
-        self.conv_end = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=3)
+        self.conv_end = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
         self.num_groups = num_groups
         self.groups = []
         for i in range(self.num_groups):
             temp_group = ResidualGroup(num_blocks=10, in_channels=self.in_channels)
             self.groups.append(temp_group)
-    
-    def rcan_out(self, tensor):
+
+    def upscaling_net(self, tensor, scaling_factor):
+        channel_inp, _, _ = tensor.shape
+        espcn_net = nn.Sequential(
+            nn.Conv2d(in_channels=channel_inp, out_channels=64, kernel_size=5, stride=1, padding=2),
+            nn.Tanh(),
+            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1),
+            nn.Tanh(),
+            nn.Conv2d(in_channels=32, out_channels=channel_inp*(scaling_factor**2), kernel_size=3, stride=1, padding=1 ),
+            nn.PixelShuffle(2),
+            nn.Sigmoid()
+        )
+        tensor = espcn_net(tensor)
+        return tensor
+
+    def rcan_out(self, tensor, upscale='False',scaling_factor=2):
         temp_tensor = tensor
         temp_tensor = self.conv_start(temp_tensor)
         for i in range(self.num_groups):
@@ -77,6 +91,9 @@ class RCAN():
         temp_tensor = self.conv_mid(temp_tensor)
         tensor = tensor + temp_tensor
         tensor = self.conv_end(tensor)
+
+        if upscale=='True':
+            tensor = self.upscaling_net(tensor, scaling_factor=scaling_factor)
         return tensor
 
 'Unit testing for different Classes'
@@ -99,5 +116,14 @@ if __name__ == '__main__':
     in_tensor = torch.rand(64, 256, 256)
     num_channels, _, _ = in_tensor.shape
     rcan = RCAN(in_channels=num_channels, num_groups=5)
-    out_tensor = rcan.rcan_out(in_tensor)
+    out_tensor = rcan.rcan_out(in_tensor, upscale='False')
     print("The shape of the output tensor from rcab is {}".format(out_tensor.shape))
+
+    'Unit testing of Residual Channel Attention network (rcan) with espcn upscaling'
+    in_tensor = torch.rand(64, 256, 256)
+    num_channels, _, _ = in_tensor.shape
+    rcan = RCAN(in_channels=num_channels, num_groups=5)
+    out_tensor = rcan.rcan_out(in_tensor, upscale='True', scaling_factor=2)
+    print("The shape of the output tensor from rcab is {}".format(out_tensor.shape))
+
+
