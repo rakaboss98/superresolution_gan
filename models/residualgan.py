@@ -39,14 +39,14 @@ class ResGan(nn.Module):
         _, channel_in_1, _, _ = tensor_1.shape
         _, channel_in_2, _, _ = tensor_2.shape
         conv_layer = nn.Sequential(
-            nn.Conv2d(in_channels=channel_in_1, out_channels=channel_in_1, kernel_size=5, stride=1),
+            nn.Conv2d(in_channels=channel_in_1, out_channels=channel_in_1, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(channel_in_1),
             nn.LeakyReLU(negative_slope=0.01)
         )
         tensor_1 = conv_layer(tensor_1)
         out_tensor = torch.cat(tensors=(tensor_1, tensor_2), dim=1)
         fuse_layer = nn.Sequential(
-            nn.Conv2d(in_channels=channel_in_2+channel_in_1, out_channels=channel_in_1, kernel_size=1, stride=1, padding=2),
+            nn.Conv2d(in_channels=channel_in_2+channel_in_1, out_channels=channel_in_1, kernel_size=1, stride=1),
             nn.BatchNorm2d(channel_in_1),
             nn.LeakyReLU(negative_slope=0.1)
         )
