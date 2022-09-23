@@ -37,7 +37,6 @@ def generate_data(data_location=file_location['sen2'],save_location=file_locatio
             red = rio.open(red_band)
             blue = rio.open(blue_band)
             green = rio.open(green_band)
-            
             # the buffer is to avoid the black stripes in the generated tiles
             # the buffer is set to 20% reduction from each side of the original image
             buffer_x = (red.bounds.right-red.bounds.left)*0.2
