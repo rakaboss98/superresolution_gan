@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 tile_size = 256
 tiling_stride = 128
 
+'Update the downloaded files location, tile_size and tiling stride'
+'The output images are min max normalised'
 def generate_data(data_location=file_location['airbus'], tile_size=256, tiling_stride=128):
     folders = os.listdir(data_location)
     
