@@ -58,7 +58,7 @@ class ResidualGroup(nn.Module):
         return tensor
 
 class RCAN(nn.Module):
-    def __init__(self, in_channels, num_groups):
+    def __init__(self, in_channels=3, num_groups=10):
         super(RCAN, self).__init__()
         self.in_channels = in_channels
         self.conv_start = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
