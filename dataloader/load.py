@@ -2,7 +2,6 @@ import os
 import imageio.v2 as io
 import random
 import matplotlib.pyplot as plt
-from config import data_location
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
 
@@ -52,6 +51,7 @@ class LoadItem(Dataset):
         return [downsamp_image, upsamp_image]
 
 if __name__ == "__main__":
+    from config import data_location
     train_data = LoadItem(data_location['high_res_train_data'], data_location['low_res_train_data'])
     train_iterator = DataLoader(train_data, shuffle=True, batch_size=2)
     images = next(iter(train_iterator))

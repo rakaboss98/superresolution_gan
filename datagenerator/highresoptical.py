@@ -8,12 +8,12 @@ from config import file_location
 import imageio as io
 import matplotlib.pyplot as plt
 
-tile_size = 256
-tiling_stride = 128
+tile_size = 512
+tiling_stride = 256
 
 'Update the downloaded files location, tile_size and tiling stride'
 'The output images are min max normalised'
-def generate_data(data_location=file_location['airbus'], tile_size=256, tiling_stride=128):
+def generate_data(data_location=file_location['airbus'], tile_size=512, tiling_stride=128):
     folders = os.listdir(data_location)
     
     for data_folder in folders:

@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import imageio as io 
 import itertools
 
+tile_size = 256
+tiling_stride = 128
+
 'generate the data tiles from sentinel-2 images'
 'currently supports the tiling of rgb channels'
 def generate_data(data_location=file_location['sen2'],save_location=file_location['low_res_optical'], tile_size=256, tiling_stride=128):

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 # Residual channel attention block
 class RCAB(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels=3):
         super(RCAB, self).__init__()
         self.in_channels = in_channels
     
