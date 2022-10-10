@@ -26,12 +26,12 @@ disc_xup = patchgan.PatchGan(image_res='high').to(device)
 'Initialising the optimizers'
 
 # Optimizer for generators
-# opti_gen = optim.Adam(
-#     params = list(gen_yd2x.parameters())+list(gen_x2yd.parameters()),
-#     lr = training_parameteres['learning_rate'],
-#     betas=[training_parameteres['beta_1'], training_parameteres['beta_2']],
-#     # eps= training_parameteres['epsilon']
-# )
+opti_gen = optim.Adam(
+    params = list(gen_yd2x.parameters())+list(gen_x2yd.parameters()),
+    lr = training_parameteres['learning_rate'],
+    betas=[training_parameteres['beta_1'], training_parameteres['beta_2']],
+    # eps= training_parameteres['epsilon']
+)
 
 # Optimizer for discriminators
 opti_disc = optim.Adam(

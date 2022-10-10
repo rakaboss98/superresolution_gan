@@ -9,22 +9,22 @@ class RCAB(nn.Module):
         self.in_channels = in_channels
     
     def initial_conv(self, tensor):
-        conv_layers = nn.Sequential(
+        self.conv_layers = nn.Sequential(
             nn.Conv2d(in_channels=self.in_channels, out_channels=self.in_channels, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(in_channels=self.in_channels, out_channels=self.in_channels, kernel_size=3, padding=1)
         )
-        return conv_layers(tensor)
+        return self.conv_layers(tensor)
 
     def channel_attention(self, im_height, im_width, tensor):
-        attention_conv_layers = nn.Sequential(
+        self.attention_conv_layers = nn.Sequential(
             nn.AvgPool2d(kernel_size=(im_height, im_width)),
             nn.Conv2d(in_channels=self.in_channels, kernel_size=1, out_channels=4),
             nn.ReLU(),
             nn.Conv2d(in_channels=4, kernel_size=1, out_channels=self.in_channels),
             nn.Sigmoid()
         )
-        return attention_conv_layers(tensor)
+        return self.attention_conv_layers(tensor)
     
     def block_output(self, tensor):
         conv_tensor = self.initial_conv(tensor) # passing throught the initial conv layer
@@ -35,10 +35,11 @@ class RCAB(nn.Module):
         return tensor 
 
 # Residual group 
-class ResidualGroup():
+class ResidualGroup(nn.Module):
     def __init__(self, num_blocks, in_channels):
+        super(ResidualGroup, self).__init__()
         self.num_blocks = num_blocks
-        self.blocks = []
+        self.blocks = nn.ModuleList()
         self.in_channels = in_channels
         self.conv_block = nn.Sequential(
             nn.Conv2d(in_channels=self.in_channels, out_channels= self.in_channels, kernel_size=3, padding=1)
@@ -56,21 +57,22 @@ class ResidualGroup():
         tensor = temp_tensor+tensor
         return tensor
 
-class RCAN():
+class RCAN(nn.Module):
     def __init__(self, in_channels, num_groups):
+        super(RCAN, self).__init__()
         self.in_channels = in_channels
         self.conv_start = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
         self.conv_mid = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
         self.conv_end = nn.Conv2d(in_channels=in_channels, kernel_size=3, padding=1, out_channels=in_channels)
         self.num_groups = num_groups
-        self.groups = []
+        self.groups = nn.ModuleList()
         for i in range(self.num_groups):
             temp_group = ResidualGroup(num_blocks=10, in_channels=self.in_channels)
             self.groups.append(temp_group)
 
     def upscaling_net(self, tensor, scaling_factor):
         _, channel_inp, _, _ = tensor.shape
-        espcn_net = nn.Sequential(
+        self.espcn_net = nn.Sequential(
             nn.Conv2d(in_channels=channel_inp, out_channels=64, kernel_size=5, stride=1, padding=2),
             nn.Tanh(),
             nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1),
@@ -79,7 +81,7 @@ class RCAN():
             nn.PixelShuffle(2),
             nn.Sigmoid()
         )
-        tensor = espcn_net(tensor)
+        tensor = self.espcn_net(tensor)
         return tensor
 
     def rcan_out(self, tensor, upscale='False',scaling_factor=2):
@@ -125,5 +127,8 @@ if __name__ == '__main__':
     rcan = RCAN(in_channels=num_channels, num_groups=5)
     out_tensor = rcan.rcan_out(in_tensor, upscale='True', scaling_factor=2)
     print("The shape of the output tensor from rcab is {}".format(out_tensor.shape))
+
+    'Printing the model summary'
+    print('The model summary is', rcan)
 
 

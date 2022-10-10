@@ -20,6 +20,6 @@ if __name__ == '__main__':
     print('Rcan call sucessful')
 
     # Testing the patchgan architecture
-    pgan = PatchGan(tensor, image_res='high')
-    pgan.forward()
+    pgan = PatchGan(image_res='high')
+    pgan.forward(tensor)
     print('PatchGan call successful')

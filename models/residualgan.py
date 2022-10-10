@@ -10,27 +10,27 @@ class ResGan(nn.Module):
     # Combination of a residual block and a gaussian layer
     def input_block(self, tensor):
         batch_size, channel_in, height, width = tensor.shape
-        conv_layer = nn.Sequential(
+        self.conv_layer_1 = nn.Sequential(
             nn.Conv2d(in_channels=channel_in, out_channels=64, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.01)
         )
         noise_layer = torch.randn(batch_size, 1, height, width)
-        tensor = conv_layer(tensor)
+        tensor = self.conv_layer_1(tensor)
         tensor = torch.cat(tensors=(tensor, noise_layer), dim=1)
         return tensor 
     
     # Creating a residual block with skip connections
     def residual_block(self, tensor):
         _, channel_in, _, _ = tensor.shape
-        conv_layer = nn.Sequential(
+        self.conv_layer_2 = nn.Sequential(
             nn.Conv2d(in_channels=channel_in, out_channels=64, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.01),
             nn.Conv2d(in_channels=64, out_channels=channel_in, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(channel_in)
         )
-        tensor = conv_layer(tensor) + tensor
+        tensor = self.conv_layer_2(tensor) + tensor
         tensor = F.leaky_relu(tensor, negative_slope=0.01)
         return tensor
 
@@ -38,19 +38,19 @@ class ResGan(nn.Module):
     def fusion_block(self, tensor_1, tensor_2):
         _, channel_in_1, _, _ = tensor_1.shape
         _, channel_in_2, _, _ = tensor_2.shape
-        conv_layer = nn.Sequential(
+        self.conv_layer_3 = nn.Sequential(
             nn.Conv2d(in_channels=channel_in_1, out_channels=channel_in_1, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(channel_in_1),
             nn.LeakyReLU(negative_slope=0.01)
         )
-        tensor_1 = conv_layer(tensor_1)
+        tensor_1 = self.conv_layer_3(tensor_1)
         out_tensor = torch.cat(tensors=(tensor_1, tensor_2), dim=1)
-        fuse_layer = nn.Sequential(
+        self.fuse_layer = nn.Sequential(
             nn.Conv2d(in_channels=channel_in_2+channel_in_1, out_channels=channel_in_1, kernel_size=1, stride=1),
             nn.BatchNorm2d(channel_in_1),
             nn.LeakyReLU(negative_slope=0.1)
         )
-        out_tensor = fuse_layer(out_tensor)
+        out_tensor = self.fuse_layer(out_tensor)
         return(out_tensor)
     
     # Combining all the layers
@@ -65,11 +65,11 @@ class ResGan(nn.Module):
         tensor_1 = self.fusion_block(tensor_1, tensor_2)
 
         _, channel_in_1, _, _ = tensor_1.shape
-        final_out = nn.Sequential(
+        self.final_out = nn.Sequential(
             nn.Conv2d(in_channels=channel_in_1, out_channels=channel_in, kernel_size=3, padding=1, stride=1),
             nn.Sigmoid()
         )
-        tensor_1 = final_out(tensor_1)
+        tensor_1 = self.final_out(tensor_1)
         return tensor_1
         
 if __name__ == '__main__':
@@ -87,6 +87,9 @@ if __name__ == '__main__':
     'testing the forward block'
     tensor = torch.rand(2, 8, 256, 256)
     print('The output of the forward block is {}'.format(resgan.forward(tensor).shape))
+
+    'testing for model parameters'
+    print('the model summary is', resgan)
 
     
     
