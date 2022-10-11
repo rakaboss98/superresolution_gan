@@ -27,11 +27,11 @@ class RCAB(nn.Module):
         return self.attention_conv_layers(tensor)
     
     def block_output(self, tensor):
-        conv_tensor = self.initial_conv(tensor) # passing throught the initial conv layer
-        _, _, in_height, in_width = conv_tensor.shape
-        scaling_stat = self.channel_attention(in_height, in_width, conv_tensor) # passing through channel attention layer
-        conv_tensor = scaling_stat*conv_tensor # scaling the conv tensor
-        tensor += conv_tensor # adding the initial input tensor
+        tensor = self.initial_conv(tensor) # passing throught the initial conv layer
+        _, _, in_height, in_width = tensor.shape
+        scaling_stat = self.channel_attention(in_height, in_width, tensor) # passing through channel attention layer
+        conv_tensor_out = scaling_stat*tensor # scaling the conv tensor
+        tensor += tensor # adding the initial input tensor
         return tensor 
 
 # Residual group 
@@ -54,8 +54,8 @@ class ResidualGroup(nn.Module):
             temp_tensor = self.blocks[i].block_output(temp_tensor)
         
         temp_tensor = self.conv_block(temp_tensor)
-        tensor = temp_tensor+tensor
-        return tensor
+        tensor_out = temp_tensor+tensor
+        return tensor_out
 
 class RCAN(nn.Module):
     def __init__(self, in_channels=3, num_groups=10):
@@ -84,7 +84,7 @@ class RCAN(nn.Module):
         tensor = self.espcn_net(tensor)
         return tensor
 
-    def rcan_out(self, tensor, upscale='False',scaling_factor=2):
+    def forward(self, tensor, upscale='False',scaling_factor=2):
         temp_tensor = tensor
         temp_tensor = self.conv_start(temp_tensor)
         for i in range(self.num_groups):
@@ -118,14 +118,14 @@ if __name__ == '__main__':
     in_tensor = torch.rand(1, 64, 256, 256)
     _, num_channels, _, _ = in_tensor.shape
     rcan = RCAN(in_channels=num_channels, num_groups=5)
-    out_tensor = rcan.rcan_out(in_tensor, upscale='False')
+    out_tensor = rcan.forward(in_tensor, upscale='False')
     print("The shape of the output tensor from rcab is {}".format(out_tensor.shape))
 
     'Unit testing of Residual Channel Attention network (rcan) with espcn upscaling'
     in_tensor = torch.rand(1, 64, 256, 256)
     _, num_channels, _, _ = in_tensor.shape
     rcan = RCAN(in_channels=num_channels, num_groups=5)
-    out_tensor = rcan.rcan_out(in_tensor, upscale='True', scaling_factor=2)
+    out_tensor = rcan.forward(in_tensor, upscale='True', scaling_factor=2)
     print("The shape of the output tensor from rcab is {}".format(out_tensor.shape))
 
     'Printing the model summary'
