@@ -9,11 +9,18 @@ class LoadItem(Dataset):
     def __init__(self, root_dir_high_res, root_dir_low_res):
         self.root_dir_high_res = root_dir_high_res
         self.root_dir_low_res = root_dir_low_res
-        self.transforms = transforms.Compose([
+        self.transforms_up = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomHorizontalFlip(p=0.6),
+            transforms.RandomVerticalFlip(p=0.6),
+            transforms.Resize(size=(512, 512))
+        ])
+        self.transforms_down = transforms.Compose([
             transforms.ToTensor(),
             transforms.RandomHorizontalFlip(p=0.6),
             transforms.RandomVerticalFlip(p=0.6)
         ])
+
         self.high_res_files = []
         self.low_res_files = []
 
@@ -44,9 +51,9 @@ class LoadItem(Dataset):
         downsamp_image_name = self.low_res_files[id_temp]
 
         downsamp_image = io.imread(self.root_dir_low_res+downsamp_image_name)
-        downsamp_image = self.transforms(downsamp_image)
+        downsamp_image = self.transforms_down(downsamp_image)
         upsamp_image = io.imread(self.root_dir_high_res+upsamp_image_name)
-        upsamp_image = self.transforms(upsamp_image)
+        upsamp_image = self.transforms_up(upsamp_image)
 
         return [downsamp_image, upsamp_image]
 
