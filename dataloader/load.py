@@ -58,8 +58,8 @@ class LoadItem(Dataset):
         return [downsamp_image, upsamp_image]
 
 if __name__ == "__main__":
-    from config import data_location
-    train_data = LoadItem(data_location['high_res_train_data'], data_location['low_res_train_data'])
+    train_data = LoadItem('/Users/rakshitbhatt/Documents/GalaxEye /superresolution_gan/super_resolution/datasets/high_res_optical/',
+     '/Users/rakshitbhatt/Documents/GalaxEye /superresolution_gan/super_resolution/datasets/low_res_optical/')
     train_iterator = DataLoader(train_data, shuffle=True, batch_size=2)
     images = next(iter(train_iterator))
     print(images[0].shape, images[1].shape)

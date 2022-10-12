@@ -7,5 +7,15 @@ training_parameteres = dict(
     learning_rate = 0.01,
     beta_1 = 0.5,
     beta_2 = 0.999,
-    epsilon = 0.00001 
+    epsilon = 0.00001,
+    save_model = 'True',
+    load_model = 'False',
+    access_key = 'AKIAQVSA7EXYBCJRHLR7',
+    secret_access_key = 'qk9f31GTfTXWZNzihICMqK1j1mFrYY3vQId3lKpn',
+    bucket_name = 'sample-datasets-galaxeye',
+    high_res_optical = 'super_resolution/datasets/high_res_optical/',
+    low_res_optical = 'super_resolution/datasets/low_res_optical/',
+    checkpoints = 'super_resolution/checkpoints/',
+    train_logs = 'super_resolution/train_logs/',
+    samples = 'super_resolution/samples/'
 )

@@ -1,19 +1,31 @@
 from dataloader.load import LoadItem
-from dataloader.config import data_location
 from train_config import training_parameteres
 from models import rcan, patchgan, residualgan
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch
 import torch.nn.functional as F
-from utils import save_checkpoint, load_checkpoint
+from utils import save_checkpoint, load_checkpoint, downloadDataFroms3, downloadCheckpointsFroms3, uploadCheckpointsTos3, downloadSamples, uploadSamples
+import imageio as io 
+from torchvision.transforms import transforms
 
-save_model = True
-load_model =True
+'Read saving and loading tags from training_config'
+
+save_model = training_parameteres['save_model']
+load_model = training_parameteres['load_model']
+
+'Specify the device for computation'
 
 device = "cuda" if torch.cuda.is_available() else 'cpu'
 
-train_data = LoadItem(data_location['high_res_train_data'], data_location['low_res_train_data'])
+try: 
+    train_data = LoadItem(training_parameteres['high_res_optical'], training_parameteres['low_res_optical'])
+    loader = DataLoader(train_data, shuffle=True, batch_size=training_parameteres['batch_size'])
+    print('no data download happening from s3')
+except:
+    downloadDataFroms3()
+    train_data = LoadItem(training_parameteres['high_res_optical'], training_parameteres['low_res_optical'])
+    print('data download happening from s3')
 
 ''' The default channels are set to 3 in all generators and discriminators '''
 
@@ -55,6 +67,12 @@ opti_disc = optim.Adam(
 'Load any existing checkpoints'
 
 if load_model:
+    downloadCheckpointsFroms3('gen_yd2x.pt')
+    downloadCheckpointsFroms3('gen_x2yd.pt')
+    downloadCheckpointsFroms3('upsample_net.pt')
+    downloadCheckpointsFroms3('disc_xd.pt')
+    downloadCheckpointsFroms3('disc_yd.pt')
+    downloadCheckpointsFroms3('disc_xup.pt')
     load_checkpoint('checkpoints/gen_yd2x.pt', gen_yd2x, optimizer=opti_gen, device=device)
     load_checkpoint('checkpoints/gen_x2yd.pt', gen_x2yd,optimizer=opti_gen, device=device)
     load_checkpoint('checkpoints/upsample_net.pt', upsample_net, optimizer=opti_gen, device=device)
@@ -67,7 +85,10 @@ for epoch in range(training_parameteres['epochs']):
     
     loader = DataLoader(train_data, shuffle=True, batch_size=training_parameteres['batch_size'])
 
-    print("Starting epoch number {}".format(epoch+1))
+    genLoss = 0
+    discLoss = 0 
+
+    print("=========Starting epoch number========={}".format(epoch+1))
 
 
     for idx, batch in enumerate(loader):
@@ -97,6 +118,8 @@ for epoch in range(training_parameteres['epochs']):
                 disc_loss.backward()
                 opti_disc.step()
 
+                discLoss = discLoss+disc_loss
+
             print('backpropagated for this batch', 'disc loss is {}'.format(disc_loss))
 
             with torch.autograd.set_detect_anomaly(True):
@@ -108,14 +131,16 @@ for epoch in range(training_parameteres['epochs']):
                 idty_loss = torch.abs(gen_x2yd.forward(real_yd)-real_yd) # Identity loss
                 sr_loss = torch.abs(fake_yup-real_y) # super resolution loss
 
-                gen_loss = torch.mean(gen_yd2x_loss) + torch.mean(gen_x2yd_loss) + torch.mean(gen_yd2x_x2yd_loss) + torch.mean(cycle_loss) + torch.mean(idty_loss) + torch.mean(sr_loss)
+                gen_loss = torch.mean(gen_yd2x_loss) + torch.mean(gen_x2yd_loss) + training_parameteres['lambda_up']*torch.mean(gen_yd2x_x2yd_loss) + \
+                training_parameteres['lambda_cyc']*torch.mean(cycle_loss) + training_parameteres['lambda_idt']*torch.mean(idty_loss) + torch.mean(sr_loss)
 
                 gen_loss.backward()
                 opti_gen.zero_grad()
                 opti_gen.step()
-            
-            print('backpropagated for this batch', 'gen loss is {}'.format(gen_loss))
+
+                genLoss = genLoss + gen_loss
             break
+            print('backpropagated for this batch', 'gen loss is {}'.format(gen_loss))
         except:
             pass
     if save_model==True:
@@ -125,6 +150,37 @@ for epoch in range(training_parameteres['epochs']):
         save_checkpoint(disc_xd, optimizer=opti_disc,filename='checkpoints/disc_xd.pt')
         save_checkpoint(disc_yd, optimizer=opti_disc,filename='checkpoints/disc_yd.pt')
         save_checkpoint(disc_xup, optimizer=opti_disc,filename='checkpoints/disc_xup.pt')
+        uploadCheckpointsTos3('gen_yd2x')
+        uploadCheckpointsTos3('gen_x2yd')
+        uploadCheckpointsTos3('upsample_net')
+        uploadCheckpointsTos3('disc_xd')
+        uploadCheckpointsTos3('disc_yd')
+        uploadCheckpointsTos3('disc_xup')
+    
+    print('====The cumulative generator loss after epoch {} is {}===='.format(epoch, genLoss))
+    print('====The cumulative discriminator loss after epoch {} is {}===='.format(epoch, discLoss))
+
+    'check the results on an image after every epoch'
+    downloadSamples('raw.tif')
+    image = io.imread('samples/raw.tif')
+    transform = transforms.Compose([transforms.ToTensor()])
+    image = transform(image)
+    image = image.unsqueeze(dim=0)
+    image = gen_x2yd(image)
+    image = upsample_net(image)
+    image = image.squeeze()
+    io.volsave('samples/'+'_'+str(epoch)+'.tif', image.detach().numpy())
+    uploadSamples('_'+str(epoch)+'.tif')
+
+
+
+
+
+
+
+    
+
+
 
     
 
